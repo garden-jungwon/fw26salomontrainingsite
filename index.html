@@ -36,6 +36,12 @@
   .header-logo{flex:none; padding-top:6px;}
   .header-logo img{height:17px; width:auto; display:block;}
 
+  .store-picker{margin:22px 0 -20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .store-picker label{font-size:12.5px; font-weight:700; color:var(--stone-600);}
+  .store-picker select{border:1px solid var(--stone-300); background:#fff; padding:9px 12px; font-size:13px; font-family:var(--font); border-radius:8px; min-width:180px;}
+  .store-picker .store-saved{font-size:12px; color:var(--rust); display:none;}
+  .store-picker .store-saved.show{display:inline;}
+
   .trail{position:relative; margin:52px 0 60px; padding-left:56px;}
   .trail::before{
     content:''; position:absolute; left:22px; top:6px; bottom:6px; width:2px;
@@ -97,6 +103,13 @@
 </header>
 
 <div class="wrap">
+  <div class="store-picker">
+    <label for="storeSelect">내 매장</label>
+    <select id="storeSelect">
+      <option value="">매장을 선택하세요</option>
+    </select>
+    <span class="store-saved" id="storeSaved">✓ 저장됨</span>
+  </div>
   <div class="trail">
 
     <div class="stop">
@@ -133,7 +146,7 @@
         </div>
       </div>
       <div class="branch">
-        <a class="sub-card" href="./09-1/">
+        <a class="sub-card" href="./09-1/" id="card91" data-restricted="1">
           <div class="sub-badge">1차</div>
           <div class="sub-body">
             <p class="sub-title">SPORTSTYLE : XT-EVO</p>
@@ -165,5 +178,68 @@
   <footer>Salomon Korea · Internal Store Training</footer>
 </div>
 
+<script>
+// 매장별 노출 제어 — 9월 1차(XT-EVO)는 아래 23개점만 노출
+const ALL_STORES = [
+  "본사","살로몬 성수(정상)","살로몬 명동(정상)","살로몬 스타필드하남(정상)","살로몬 스타필드고양(정상)",
+  "살로몬 현대스페이스원(정상)","살로몬 스타필드수원(정상)","살로몬 나인원한남(정상)","살로몬 롯데본점(정상)","살로몬 롯데부산(정상)",
+  "살로몬 롯데동부산(정상)","살로몬 사이먼파주(정상)","살로몬 롯데기흥(정상)","살로몬 롯데인천(정상)","살로몬 갤러리아명품관(정상)",
+  "살로몬 제주(정상)","살로몬 사이먼부산(정상)","살로몬 스타필드안성(정상)","살로몬 롯데김포(정상)","살로몬 목포하당(정상)",
+  "살로몬 롯데몰진주(정상)","살로몬 청주(정상)","살로몬 신세계강남(정상)","살로몬 더현대서울(정상)","살로몬 신세계센텀(정상)",
+  "살로몬 현대판교(정상)","살로몬 현대무역(정상)","살로몬 신세계대구(정상)","살로몬 롯데잠실(정상)","살로몬 AK수원(정상)",
+  "살로몬 신세계대전(정상)","살로몬 스타필드코엑스(정상)","살로몬 현대김포(정상)","살로몬 타임스퀘어(정상)","살로몬 현대송도(정상)",
+  "살로몬 현대울산(정상)","살로몬 롯데전주(정상)","살로몬 현대대전(정상)","살로몬 신세계의정부(정상)","살로몬 아이파크(정상)",
+  "살로몬 현대천호(정상)","살로몬 LF광양(정상)","살로몬 현대목동(정상)","살로몬 롯데평촌(정상)","살로몬 신세계천안아산(정상)",
+  "살로몬 롯데창원(정상)","살로몬 현대충청(정상)","살로몬 현대중동(정상)","살로몬 롯데의왕(정상)","살로몬 구미(정상)",
+  "살로몬 AK원주(정상)","살로몬 롯데포항(정상)","살로몬 신세계광주(정상)","살로몬 신세계본점(정상)","살로몬 신세계사우스시티(정상)",
+  "살로몬 롯데노원(정상)","살로몬 롯데수원(정상)","살로몬 더현대대구(정상)","살로몬 롯데이시아(정상)","살로몬 갤러리아센터시티(정상)",
+  "살로몬 신세계마산(정상)","살로몬 신세계김해(정상)","살로몬 롯데안산(정상)"
+];
+
+// 9월 1차 대상 23개점 (XT EVO 운영 매장) + 본사
+const SEP1_ELIGIBLE = new Set([
+  "본사","살로몬 성수(정상)","살로몬 명동(정상)","살로몬 스타필드하남(정상)","살로몬 스타필드고양(정상)",
+  "살로몬 현대스페이스원(정상)","살로몬 스타필드수원(정상)","살로몬 나인원한남(정상)","살로몬 롯데본점(정상)","살로몬 롯데부산(정상)",
+  "살로몬 롯데동부산(정상)","살로몬 사이먼파주(정상)","살로몬 롯데기흥(정상)","살로몬 롯데인천(정상)","살로몬 갤러리아명품관(정상)",
+  "살로몬 제주(정상)","살로몬 사이먼부산(정상)","살로몬 스타필드안성(정상)","살로몬 롯데김포(정상)","살로몬 목포하당(정상)",
+  "살로몬 롯데몰진주(정상)","살로몬 청주(정상)","살로몬 신세계강남(정상)","살로몬 더현대서울(정상)"
+]);
+
+const sel = document.getElementById('storeSelect');
+ALL_STORES.forEach(s=>{
+  const opt = document.createElement('option');
+  opt.value = s; opt.textContent = s;
+  sel.appendChild(opt);
+});
+
+function applyStoreFilter(storeName){
+  const card = document.getElementById('card91');
+  if(!card) return;
+  if(storeName && !SEP1_ELIGIBLE.has(storeName)){
+    card.style.display = 'none';
+  } else {
+    card.style.display = '';
+  }
+}
+
+const saved = localStorage.getItem('salomon_store');
+if(saved){
+  sel.value = saved;
+  applyStoreFilter(saved);
+  document.getElementById('storeSaved').classList.add('show');
+}
+
+sel.addEventListener('change', ()=>{
+  const v = sel.value;
+  if(v){
+    localStorage.setItem('salomon_store', v);
+    document.getElementById('storeSaved').classList.add('show');
+  } else {
+    localStorage.removeItem('salomon_store');
+    document.getElementById('storeSaved').classList.remove('show');
+  }
+  applyStoreFilter(v);
+});
+</script>
 </body>
 </html>
