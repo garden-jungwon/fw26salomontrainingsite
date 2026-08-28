@@ -36,9 +36,16 @@
   .header-logo{flex:none; padding-top:6px;}
   .header-logo img{height:17px; width:auto; display:block;}
 
-  .store-picker{margin:22px 0 -20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .store-picker{margin:22px 0 -20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; position:relative;}
   .store-picker label{font-size:12.5px; font-weight:700; color:var(--stone-600);}
-  .store-picker select{border:1px solid var(--stone-300); background:#fff; padding:9px 12px; font-size:13px; font-family:var(--font); border-radius:8px; min-width:180px;}
+  .store-combo{position:relative; min-width:220px;}
+  .store-combo input{width:100%; border:1px solid var(--stone-300); background:#fff; padding:9px 12px; font-size:13px; font-family:var(--font); border-radius:8px;}
+  .store-combo input:focus{outline:none; border-color:var(--rust);}
+  .store-dropdown{position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:220px; overflow-y:auto; background:#fff; border:1px solid var(--stone-300); border-radius:8px; box-shadow:0 4px 16px rgba(30,25,15,.1); display:none; z-index:10;}
+  .store-dropdown.show{display:block;}
+  .store-option{padding:9px 12px; font-size:13px; cursor:pointer;}
+  .store-option:hover, .store-option.hl{background:var(--slate-soft, #eef3f8);}
+  .store-option.empty{color:var(--stone-600); cursor:default;}
   .store-picker .store-saved{font-size:12px; color:var(--rust); display:none;}
   .store-picker .store-saved.show{display:inline;}
 
@@ -104,10 +111,11 @@
 
 <div class="wrap">
   <div class="store-picker">
-    <label for="storeSelect">내 매장</label>
-    <select id="storeSelect">
-      <option value="">매장을 선택하세요</option>
-    </select>
+    <label for="storeSearch">내 매장</label>
+    <div class="store-combo">
+      <input type="text" id="storeSearch" placeholder="매장명을 입력하세요 (예: 서촌)" autocomplete="off">
+      <div class="store-dropdown" id="storeDropdown"></div>
+    </div>
     <span class="store-saved" id="storeSaved">✓ 저장됨</span>
   </div>
   <div class="trail">
@@ -154,7 +162,7 @@
           </div>
           <div class="sub-arrow">→</div>
         </a>
-        <a class="sub-card" href="./09-2/">
+        <a class="sub-card" href="./09-2/" id="card92">
           <div class="sub-badge">2차</div>
           <div class="sub-body">
             <p class="sub-title">PERFORMANCE : 데일리 러닝화</p>
@@ -162,7 +170,7 @@
           </div>
           <div class="sub-arrow">→</div>
         </a>
-        <a class="sub-card" href="./09-3/">
+        <a class="sub-card" href="./09-3/" id="card93">
           <div class="sub-badge">3차</div>
           <div class="sub-body">
             <p class="sub-title">SPORTSTYLE : GREY HOURS</p>
@@ -193,7 +201,7 @@ const ALL_STORES = [
   "살로몬 롯데창원(정상)","살로몬 현대충청(정상)","살로몬 현대중동(정상)","살로몬 롯데의왕(정상)","살로몬 구미(정상)",
   "살로몬 AK원주(정상)","살로몬 롯데포항(정상)","살로몬 신세계광주(정상)","살로몬 신세계본점(정상)","살로몬 신세계사우스시티(정상)",
   "살로몬 롯데노원(정상)","살로몬 롯데수원(정상)","살로몬 더현대대구(정상)","살로몬 롯데이시아(정상)","살로몬 갤러리아센터시티(정상)",
-  "살로몬 신세계마산(정상)","살로몬 신세계김해(정상)","살로몬 롯데안산(정상)"
+  "살로몬 신세계마산(정상)","살로몬 신세계김해(정상)","살로몬 롯데안산(정상)","살로몬 서촌(정상)"
 ];
 
 // 9월 1차 대상 23개점 (XT EVO 운영 매장) + 본사
@@ -205,41 +213,106 @@ const SEP1_ELIGIBLE = new Set([
   "살로몬 롯데몰진주(정상)","살로몬 청주(정상)","살로몬 신세계강남(정상)","살로몬 더현대서울(정상)"
 ]);
 
-const sel = document.getElementById('storeSelect');
-ALL_STORES.forEach(s=>{
-  const opt = document.createElement('option');
-  opt.value = s; opt.textContent = s;
-  sel.appendChild(opt);
-});
+// 서촌은 9월 1차·3차 제외, 9월 2차만 노출
+const SEP_ONLY_2_STORES = new Set(["살로몬 서촌(정상)"]);
 
 function applyStoreFilter(storeName){
-  const card = document.getElementById('card91');
-  if(!card) return;
-  if(storeName && !SEP1_ELIGIBLE.has(storeName)){
-    card.style.display = 'none';
-  } else {
-    card.style.display = '';
-  }
+  const c91 = document.getElementById('card91');
+  const c93 = document.getElementById('card93');
+  if(c91) c91.style.display = (storeName && !SEP1_ELIGIBLE.has(storeName)) ? 'none' : '';
+  if(c93) c93.style.display = (storeName && SEP_ONLY_2_STORES.has(storeName)) ? 'none' : '';
 }
 
-const saved = localStorage.getItem('salomon_store');
-if(saved){
-  sel.value = saved;
-  applyStoreFilter(saved);
-  document.getElementById('storeSaved').classList.add('show');
-}
+// ---- 검색형 매장 선택 콤보박스 ----
+const searchInput = document.getElementById('storeSearch');
+const dropdown = document.getElementById('storeDropdown');
+const savedTag = document.getElementById('storeSaved');
+let selectedStore = '';
+let highlightIdx = -1;
+let currentOptions = [];
 
-sel.addEventListener('change', ()=>{
-  const v = sel.value;
-  if(v){
-    localStorage.setItem('salomon_store', v);
-    document.getElementById('storeSaved').classList.add('show');
+function selectStore(name){
+  selectedStore = name;
+  searchInput.value = name;
+  if(name){
+    localStorage.setItem('salomon_store', name);
+    savedTag.classList.add('show');
   } else {
     localStorage.removeItem('salomon_store');
-    document.getElementById('storeSaved').classList.remove('show');
+    savedTag.classList.remove('show');
   }
-  applyStoreFilter(v);
+  applyStoreFilter(name);
+  closeDropdown();
+}
+
+function closeDropdown(){
+  dropdown.classList.remove('show');
+  dropdown.innerHTML = '';
+  highlightIdx = -1;
+}
+
+function renderDropdown(query){
+  const q = query.trim();
+  const matches = q
+    ? ALL_STORES.filter(s => s.includes(q))
+    : ALL_STORES;
+  currentOptions = matches;
+  if(matches.length === 0){
+    dropdown.innerHTML = '<div class="store-option empty">일치하는 매장이 없습니다</div>';
+  } else {
+    dropdown.innerHTML = matches.slice(0, 30).map((s,i)=>
+      `<div class="store-option" data-idx="${i}">${s}</div>`
+    ).join('');
+  }
+  dropdown.classList.add('show');
+  highlightIdx = -1;
+  dropdown.querySelectorAll('.store-option[data-idx]').forEach(el=>{
+    el.addEventListener('mousedown', (e)=>{
+      e.preventDefault();
+      selectStore(el.textContent);
+    });
+  });
+}
+
+searchInput.addEventListener('input', ()=>{
+  if(searchInput.value.trim() === ''){
+    selectedStore = '';
+    localStorage.removeItem('salomon_store');
+    savedTag.classList.remove('show');
+    applyStoreFilter('');
+  }
+  renderDropdown(searchInput.value);
 });
+searchInput.addEventListener('focus', ()=> renderDropdown(searchInput.value));
+searchInput.addEventListener('blur', ()=> setTimeout(closeDropdown, 120));
+searchInput.addEventListener('keydown', (e)=>{
+  const items = dropdown.querySelectorAll('.store-option[data-idx]');
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    highlightIdx = Math.min(highlightIdx+1, items.length-1);
+    items.forEach((el,i)=>el.classList.toggle('hl', i===highlightIdx));
+    if(items[highlightIdx]) items[highlightIdx].scrollIntoView({block:'nearest'});
+  } else if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    highlightIdx = Math.max(highlightIdx-1, 0);
+    items.forEach((el,i)=>el.classList.toggle('hl', i===highlightIdx));
+    if(items[highlightIdx]) items[highlightIdx].scrollIntoView({block:'nearest'});
+  } else if(e.key === 'Enter'){
+    e.preventDefault();
+    if(highlightIdx >= 0 && currentOptions[highlightIdx]){
+      selectStore(currentOptions[highlightIdx]);
+    } else if(currentOptions.length === 1){
+      selectStore(currentOptions[0]);
+    }
+  } else if(e.key === 'Escape'){
+    closeDropdown();
+  }
+});
+
+const saved = localStorage.getItem('salomon_store');
+if(saved && ALL_STORES.includes(saved)){
+  selectStore(saved);
+}
 </script>
 </body>
 </html>
