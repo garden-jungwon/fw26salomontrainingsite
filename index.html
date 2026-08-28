@@ -215,12 +215,16 @@ const SEP1_ELIGIBLE = new Set([
 
 // 서촌은 9월 1차·3차 제외, 9월 2차만 노출
 const SEP_ONLY_2_STORES = new Set(["살로몬 서촌(정상)"]);
+// 성수는 9월 2차만 숨김 (나머지는 정상 노출)
+const HIDE_SEP2_STORES = new Set(["살로몬 성수(정상)","살로몬 갤러리아명품관(정상)"]);
 
 function applyStoreFilter(storeName){
   const c91 = document.getElementById('card91');
+  const c92 = document.getElementById('card92');
   const c93 = document.getElementById('card93');
   if(c91) c91.style.display = (storeName && !SEP1_ELIGIBLE.has(storeName)) ? 'none' : '';
   if(c93) c93.style.display = (storeName && SEP_ONLY_2_STORES.has(storeName)) ? 'none' : '';
+  if(c92) c92.style.display = (storeName && HIDE_SEP2_STORES.has(storeName)) ? 'none' : '';
 }
 
 // ---- 검색형 매장 선택 콤보박스 ----
