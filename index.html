@@ -181,6 +181,18 @@
       </div>
     </div>
 
+    <div class="stop">
+      <div class="wp">10월</div>
+      <a class="card" href="./10/" id="card10">
+        <div class="card-body">
+          <p class="card-tag">October</p>
+          <p class="card-title">SPORTSTYLE : WINTER STORY</p>
+          <p class="card-desc">XT-WHISPER GTX, XT-6 PROTECTIVE, XT-4 OG GTX 핵심 포인트 확인 및 퀴즈</p>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+    </div>
+
   </div>
 
   <footer>Salomon Korea · Internal Store Training</footer>
@@ -217,14 +229,18 @@ const SEP1_ELIGIBLE = new Set([
 const SEP_ONLY_2_STORES = new Set(["살로몬 서촌(정상)"]);
 // 성수는 9월 2차만 숨김 (나머지는 정상 노출)
 const HIDE_SEP2_STORES = new Set(["살로몬 성수(정상)","살로몬 갤러리아명품관(정상)"]);
+// 서촌은 10월 교육 제외
+const HIDE_OCT_STORES = new Set(["살로몬 서촌(정상)"]);
 
 function applyStoreFilter(storeName){
   const c91 = document.getElementById('card91');
   const c92 = document.getElementById('card92');
   const c93 = document.getElementById('card93');
+  const c10 = document.getElementById('card10');
   if(c91) c91.style.display = (storeName && !SEP1_ELIGIBLE.has(storeName)) ? 'none' : '';
   if(c93) c93.style.display = (storeName && SEP_ONLY_2_STORES.has(storeName)) ? 'none' : '';
   if(c92) c92.style.display = (storeName && HIDE_SEP2_STORES.has(storeName)) ? 'none' : '';
+  if(c10) c10.style.display = (storeName && HIDE_OCT_STORES.has(storeName)) ? 'none' : '';
 }
 
 // ---- 검색형 매장 선택 콤보박스 ----
